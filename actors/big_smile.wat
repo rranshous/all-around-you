@@ -113,7 +113,7 @@
     )
   )
 
-    (func (export "main")
+    (func (export "draw")
       call $clear_canvas
       global.get $smile
       i32.const 0xff_00_ff_ff ;; abgr

@@ -81,8 +81,8 @@
       let tileObj = await WebAssembly.instantiateStreaming(fetch('actors/burning_bush.wasm'),
         tileImportObject);
 
-      animation_wasm = obj.instance.exports.main;
-      animateTile = tileObj.instance.exports.main;
+      animation_wasm = obj.instance.exports.draw;
+      animateTile = tileObj.instance.exports.draw;
       requestAnimationFrame(animate);
     })();
   </script>

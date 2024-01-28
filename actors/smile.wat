@@ -113,7 +113,7 @@
     )
   )
 
-    (func (export "main")
+    (func (export "draw")
       call $clear_canvas
       global.get $static_sprite
       i32.const 0xff_cc_33_ff ;; abgr
