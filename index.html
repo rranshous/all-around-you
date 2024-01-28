@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sprite</title>
+    <style>
+      canvas {
+        width: 512px;
+        height: 512px;
+        margin-left: auto;
+        margin-right: auto;
+        image-rendering: -moz-crisp-edges;
+        image-rendering: -webkit-crisp-edges;
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+      }
+    </style>
+  </head>
+  <body>
+    <center>
+    <canvas id="cnvs" width="128" height="128"></canvas>
+    </center>
+  </body>
+  <script>
+    const canvas = document.getElementById("cnvs");
+    const ctx = canvas.getContext("2d");
+    const cnvs_size = 128;
+    const sub_cnvs_size = 64;
+    const img_buf_size = sub_cnvs_size * sub_cnvs_size * 4;
+    ctx.clearRect(0, 0, cnvs_size, cnvs_size);
+
+    const memory = new WebAssembly.Memory({ initial: 1 });
+
+    const importObject = {
+      env: {
+        buffer: memory,
+        cnvs_size: sub_cnvs_size,
+        img_buf_size: img_buf_size,
+      }
+    };
+
+    const image_data =
+      new ImageData(new Uint8ClampedArray(memory.buffer, 0, img_buf_size),
+        sub_cnvs_size, sub_cnvs_size);
+
+    var animation_wasm;
+    const center = (cnvs_size/2)-(sub_cnvs_size/2);
+
+    function animate() {
+      animation_wasm();
+      ctx.putImageData(image_data, center, center);
+      requestAnimationFrame(animate);
+    }
+
+    (async () => {
+      let obj = await WebAssembly.instantiateStreaming(fetch('sprite.wasm'),
+        importObject);
+
+      animation_wasm = obj.instance.exports.main;
+      requestAnimationFrame(animate);
+    })();
+  </script>
+</html>
