@@ -16,7 +16,7 @@
     0 0 1 1 1 1 0 0         0x3c
   ;)
 
-  (global $smile i64 (i64.const 0x0c_52_27_89_b6_19_42_3c))
+  (global $background i64 (i64.const 0x0c_52_27_89_b6_19_42_3c))
 
   (func $clear_canvas
     (local $i i32)
@@ -115,19 +115,10 @@
 
     (func (export "main")
       call $clear_canvas
-      global.get $smile
+      global.get $background
       i32.const 0xff_cc_33_ff ;; abgr
       i32.const 0
       i32.const 0
-      global.set $yval
-      global.get $yval
-      global.get $cnvs_size
-      i32.ge_s
-      if
-        i32.const -7
-        global.set $yval
-      end
-      global.get $yval
       call $render_sprite
     )
   )
