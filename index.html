@@ -29,9 +29,13 @@
     const ctx = canvas.getContext("2d");
     const cnvs_size = 128;
     const sub_cnvs_size = 64;
+    const tileSize = 8;
+    const canvasTiles = cnvs_size / tileSize;
     const img_buf_size = sub_cnvs_size * sub_cnvs_size * 4;
+    const tileBufSize = tileSize * tileSize * 4;
     ctx.clearRect(0, 0, cnvs_size, cnvs_size);
 
+    const tileMemory = new WebAssembly.Memory({ initial: 1 });
     const memory = new WebAssembly.Memory({ initial: 1 });
 
     const importObject = {
@@ -41,16 +45,32 @@
         img_buf_size: img_buf_size,
       }
     };
+    const tileImportObject = {
+      env: {
+        buffer: tileMemory,
+        cnvs_size: tileSize,
+        img_buf_size: tileBufSize 
+      }
+    }
 
     const image_data =
       new ImageData(new Uint8ClampedArray(memory.buffer, 0, img_buf_size),
         sub_cnvs_size, sub_cnvs_size);
+    const tileImageData =
+      new ImageData(new Uint8ClampedArray(tileMemory.buffer, 0, tileBufSize),
+        tileSize, tileSize);
 
     var animation_wasm;
     const center = (cnvs_size/2)-(sub_cnvs_size/2);
 
     function animate() {
       animation_wasm();
+      animateTile();
+      for(let x=0; x<=cnvs_size; x=x+tileSize) {
+        for(let y=0; y<=cnvs_size; y=y+tileSize) {
+          ctx.putImageData(tileImageData, x, y);
+        }
+      }
       ctx.putImageData(image_data, center, center);
       requestAnimationFrame(animate);
     }
@@ -58,8 +78,11 @@
     (async () => {
       let obj = await WebAssembly.instantiateStreaming(fetch('sprite.wasm'),
         importObject);
+      let tileObj = await WebAssembly.instantiateStreaming(fetch('background.wasm'),
+        tileImportObject);
 
       animation_wasm = obj.instance.exports.main;
+      animateTile = tileObj.instance.exports.main;
       requestAnimationFrame(animate);
     })();
   </script>
