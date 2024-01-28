@@ -16,7 +16,7 @@
     0 0 1 1 1 1 0 0         0x3c
   ;)
 
-  (global $background i64 (i64.const 0x0c_52_27_89_b6_19_42_3c))
+  (global $static_sprite i64 (i64.const 0x3c_42_a5_81_a5_99_42_3c))
 
   (func $clear_canvas
     (local $i i32)
@@ -115,11 +115,12 @@
 
     (func (export "main")
       call $clear_canvas
-      global.get $background
+      global.get $static_sprite
       i32.const 0xff_cc_33_ff ;; abgr
       i32.const 0
       i32.const 0
       call $render_sprite
     )
   )
+
 

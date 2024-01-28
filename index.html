@@ -76,9 +76,9 @@
     }
 
     (async () => {
-      let obj = await WebAssembly.instantiateStreaming(fetch('sprite.wasm'),
+      let obj = await WebAssembly.instantiateStreaming(fetch('actors/big_smile.wasm'),
         importObject);
-      let tileObj = await WebAssembly.instantiateStreaming(fetch('background.wasm'),
+      let tileObj = await WebAssembly.instantiateStreaming(fetch('actors/burning_bush.wasm'),
         tileImportObject);
 
       animation_wasm = obj.instance.exports.main;
