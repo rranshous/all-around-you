@@ -2,3 +2,11 @@
 2d game where agents are wasm modules
 
 drawing code from https://wasmbook.com/blog/WATSprite/
+
+-- start server --
+```
+python3 -m http.server 8033
+```
+
+load in browser
+asdf
