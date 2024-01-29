@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sprite</title>
+    <style>
+      canvas {
+        width: 512px;
+        height: 512px;
+        margin-left: auto;
+        margin-right: auto;
+        image-rendering: -moz-crisp-edges;
+        image-rendering: -webkit-crisp-edges;
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+      }
+    </style>
+  </head>
+
+  <body id="everything">
+    <center>
+      <canvas id="cnvs" width="128" height="128"></canvas>
+    </center>
+  </body>
+
+  <script>
+    let game = {};
+
+    // game board is defined in tiles
+    game.board = { width: 16, height: 16 };
+    game.board.background = {};
+    game.board.background.tiles = emptyArray(game.board.width * game.board.height);
+    game.board.actors = {};
+    game.board.actors.tiles = emptyArray(game.board.width * game.board.height);
+
+    // game canvas is defined in pixels
+    game.canvas = document.getElementById("cnvs");
+    game.canvas.ctx = game.canvas.getContext("2d");
+    game.canvas.tile = {};
+    game.canvas.tile.width = game.canvas.width / game.board.width;
+    game.canvas.tile.height = game.canvas.height / game.board.height;
+    game.canvas.tile.memory = new WebAssembly.Memory({ initial: 1 });
+    game.canvas.tile.imageData = new ImageData(
+      new Uint8ClampedArray(game.canvas.tile.memory.buffer, 0, calcBufferSize(game.canvas.tile)),
+      game.canvas.tile.width, game.canvas.tile.height
+    )
+    game.canvas.ctx.clearRect(0, 0, game.canvas.width, game.canvas.height);
+
+
+    // listen for keys
+
+    // Tile
+    // type, subtype, actorModule
+
+    const setupBoard = async () => {
+      // setup background tiles
+      // should setup a tile in every tile space
+      for(let i=0; i<=game.board.width * game.board.height; i++) {
+        let backgroundTile = {
+          actorModule: await createActorModule('actors/burning_bush.wasm')
+        }
+        game.board.background.tiles[i] = backgroundTile;
+      }
+
+      // setup the player tile, putting it in first position
+      game.board.actors.tiles[0] = {
+        actorModule: await createActorModule('actors/smile.wasm'),
+        subType: 'MAINCHAR'
+      };
+    }
+
+    const createActorModule = async (modulePath) => {
+      return await WebAssembly.instantiateStreaming(
+        fetch(modulePath),
+        { env: {
+            buffer: game.canvas.tile.memory,
+            cnvs_size: game.canvas.tile.width,
+            img_buf_size: calcBufferSize(game.canvas.tile)
+          }
+        }
+      )
+    }
+
+    function getTileX(tileIndex) {
+      return (tileIndex % game.board.width) * game.canvas.tile.width;
+    }
+
+    function getTileY(tileIndex) {
+      return parseInt(tileIndex / game.board.height) * game.canvas.tile.height;
+    }
+
+    async function nextFrame () {
+      for(let tilePos=0; tilePos<=game.board.width * game.board.height; tilePos++) {
+        // TODO: set image buffer to all 1?
+
+        // draw background tile on to the buffer
+        game.board.background.tiles[tilePos].actorModule.instance.exports.draw();
+
+        // draw any actor tile on to buffer
+        game.board.actors.tiles[tilePos]?.actorModule.instance.exports.draw();
+
+        // update the canvas, painting the tile from the buffer
+        game.canvas.ctx.putImageData(
+          game.canvas.tile.imageData,
+          getTileX(tilePos),
+          getTileY(tilePos)
+        )
+      }
+      requestAnimationFrame(nextFrame)
+    }
+
+    // start the whole thing off
+    (async () => {
+      await setupBoard();
+      requestAnimationFrame(nextFrame);
+    })();
+
+    // handle key presses
+    document.getElementById("everything").addEventListener("keydown", (e) => {
+      console.log('keydown',e);
+      if(e.key == 'd') {
+        console.log('d pressed');
+        let actorIndex = game.board.actors.tiles.findIndex((el) => el?.subType === 'MAINCHAR');
+        arrayMove(game.board.actors.tiles, actorIndex, actorIndex + 1);
+        console.log({ actorIndex: actorIndex, tiles: game.board.actors.tiles});
+      }
+      if(e.key == 'a') {
+        console.log('a pressed');
+        let actorIndex = game.board.actors.tiles.findIndex((el) => el?.subType === 'MAINCHAR');
+        arrayMove(game.board.actors.tiles, actorIndex, actorIndex - 1);
+        console.log({ actorIndex: actorIndex, tiles: game.board.actors.tiles});
+      }
+    });
+
+    // helper functions
+    function calcBufferSize(opts) {
+      return opts.width * opts.height * 4;
+    }
+
+    function arrayMove(arr, old_index, new_index) {
+        while (old_index < 0) {
+            old_index += arr.length;
+        }
+        while (new_index < 0) {
+            new_index += arr.length;
+        }
+        if (new_index >= arr.length) {
+            var k = new_index - arr.length + 1;
+            while (k--) {
+                arr.push(undefined);
+            }
+        }
+        arr.splice(new_index, 0, arr.splice(old_index, 1)[0]);
+        return arr; // for testing purposes
+    };
+
+  	function emptyArray(length) {
+      return Array.apply(null, Array(length)).map(function () {});
+    }
+  </script>
+</html>
