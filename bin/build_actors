@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+for filepath in `find ./actors/ -name "*.wat"`
+do
+  modulename=`basename ${filepath} .wat`
+  echo "wat -> wasm : ${modulename}"
+  wat2wasm ${filepath} -o ./actors/${modulename}.wasm
+done
