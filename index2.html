@@ -60,7 +60,9 @@
       // should setup a tile in every tile space
       for(let i=0; i<=game.board.width * game.board.height; i++) {
         let backgroundTile = {
-          actorModule: await createActorModule('actors/burning_bush.wasm')
+          actorModule: await createActorModule('actors/burning_bush.wasm'),
+          type: 'BACKGROUND',
+          subType: 'BURNINGBUSH'
         }
         game.board.background.tiles[i] = backgroundTile;
       }
@@ -68,6 +70,7 @@
       // setup the player tile, putting it in first position
       game.board.actors.tiles[0] = {
         actorModule: await createActorModule('actors/smile.wasm'),
+        type: 'ACTOR',
         subType: 'MAINCHAR'
       };
     }
@@ -84,18 +87,49 @@
       )
     }
 
-    function getTileX(tileIndex) {
-      return (tileIndex % game.board.width) * game.canvas.tile.width;
-    }
+    function setupInputs () {
+      // handle key presses
+      document.getElementById("everything").addEventListener("keydown", (e) => {
+        let actorIndex = game.board.actors.tiles.findIndex((el) => el?.subType === 'MAINCHAR');
+        let nextPos; let rangeStart; let rangeEnd;
+        let rowStart = parseInt(actorIndex / game.board.width) * game.board.width; 
+        let rowEnd = rowStart + game.board.width - 1;
+        let columnStart = actorIndex % game.board.width;
+        let columnEnd = (game.board.height - 1) * game.board.width + columnStart;
 
-    function getTileY(tileIndex) {
-      return parseInt(tileIndex / game.board.height) * game.canvas.tile.height;
+        if(e.key == 'w') {
+          console.log('a pressed');
+          rangeStart = columnStart;
+          rangeEnd = columnEnd;
+          nextPos = actorIndex - game.board.width;
+        }
+        if(e.key == 's') {
+          console.log('w pressed');
+          rangeStart = columnStart;
+          rangeEnd = columnEnd;
+          nextPos = actorIndex + game.board.width;
+        }
+        if(e.key == 'a') {
+          console.log('a pressed');
+          rangeStart = rowStart;
+          rangeEnd = rowEnd;
+          nextPos = actorIndex - 1;
+        }
+        if(e.key == 'd') {
+          console.log('d pressed');
+          rangeStart = rowStart;
+          rangeEnd = rowEnd;
+          nextPos = actorIndex + 1;
+        }
+        let target = Math.max(Math.min(rangeEnd, nextPos), rangeStart)
+        arrayMove(game.board.actors.tiles, actorIndex, target);
+        console.log({ actorIndex, rangeStart, rangeEnd, rowEnd, rowStart,
+                      columnStart, columnEnd, nextPos, target })
+      });
     }
 
     async function nextFrame () {
       for(let tilePos=0; tilePos<=game.board.width * game.board.height; tilePos++) {
-        // TODO: set image buffer to all 1?
-
         // draw background tile on to the buffer
         game.board.background.tiles[tilePos].actorModule.instance.exports.draw();
 
@@ -114,28 +148,22 @@
 
     // start the whole thing off
     (async () => {
+      setupInputs();
       await setupBoard();
       requestAnimationFrame(nextFrame);
     })();
 
-    // handle key presses
-    document.getElementById("everything").addEventListener("keydown", (e) => {
-      console.log('keydown',e);
-      if(e.key == 'd') {
-        console.log('d pressed');
-        let actorIndex = game.board.actors.tiles.findIndex((el) => el?.subType === 'MAINCHAR');
-        arrayMove(game.board.actors.tiles, actorIndex, actorIndex + 1);
-        console.log({ actorIndex: actorIndex, tiles: game.board.actors.tiles});
-      }
-      if(e.key == 'a') {
-        console.log('a pressed');
-        let actorIndex = game.board.actors.tiles.findIndex((el) => el?.subType === 'MAINCHAR');
-        arrayMove(game.board.actors.tiles, actorIndex, actorIndex - 1);
-        console.log({ actorIndex: actorIndex, tiles: game.board.actors.tiles});
-      }
-    });
 
     // helper functions
+
+    function getTileX(tileIndex) {
+      return (tileIndex % game.board.width) * game.canvas.tile.width;
+    }
+
+    function getTileY(tileIndex) {
+      return parseInt(tileIndex / game.board.height) * game.canvas.tile.height;
+    }
+
     function calcBufferSize(opts) {
       return opts.width * opts.height * 4;
     }
