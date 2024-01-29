@@ -105,6 +105,9 @@
         }
       }
 
+      animation_wasm();
+      ctx.putImageData(image_data, center, center);
+
       let backgroundTileData = ctx.getImageData(smilePos.x, smilePos.y, tileSize, tileSize).data;
       let smileTileData = new Uint8ClampedArray(smileTileMemory.buffer)
       for(let i=0; i<=backgroundTileData.length; i++) {
@@ -112,9 +115,6 @@
       }
       animateSmileTile();
       ctx.putImageData(smileTileImageData, smilePos.x, smilePos.y);
-
-      animation_wasm();
-      ctx.putImageData(image_data, center, center);
 
       requestAnimationFrame(animate);
     }
