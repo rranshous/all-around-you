@@ -114,9 +114,9 @@
   )
 
     (func (export "draw")
-      call $clear_canvas
+      ;; call $clear_canvas
       global.get $static_sprite
-      i32.const 0xff_cc_33_ff ;; abgr
+      i32.const 0xff_00_ff_ff ;; abgr
       i32.const 0
       i32.const 0
       call $render_sprite

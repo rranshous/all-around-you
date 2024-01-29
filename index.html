@@ -36,6 +36,7 @@
     ctx.clearRect(0, 0, cnvs_size, cnvs_size);
 
     const tileMemory = new WebAssembly.Memory({ initial: 1 });
+    const smileTileMemory = new WebAssembly.Memory({ initial: 1 });
     const memory = new WebAssembly.Memory({ initial: 1 });
 
     const importObject = {
@@ -52,6 +53,13 @@
         img_buf_size: tileBufSize 
       }
     }
+    const smileTileImportObject = {
+      env: {
+        buffer: smileTileMemory,
+        cnvs_size: tileSize,
+        img_buf_size: tileBufSize
+      }
+    }
 
     const image_data =
       new ImageData(new Uint8ClampedArray(memory.buffer, 0, img_buf_size),
@@ -59,19 +67,32 @@
     const tileImageData =
       new ImageData(new Uint8ClampedArray(tileMemory.buffer, 0, tileBufSize),
         tileSize, tileSize);
+    const smileTileImageData =
+      new ImageData(new Uint8ClampedArray(smileTileMemory.buffer, 0, tileBufSize),
+        tileSize, tileSize);
 
     var animation_wasm;
     const center = (cnvs_size/2)-(sub_cnvs_size/2);
 
     function animate() {
-      animation_wasm();
       animateTile();
       for(let x=0; x<=cnvs_size; x=x+tileSize) {
         for(let y=0; y<=cnvs_size; y=y+tileSize) {
           ctx.putImageData(tileImageData, x, y);
         }
       }
+
+      let smileTileData = new Uint32Array(smileTileMemory.buffer)
+      let backgroundTileData = new Uint32Array(tileMemory.buffer)
+      for(let i=0; i<=backgroundTileData.length; i++) {
+        smileTileData[i] = backgroundTileData[i];
+      }
+      animateSmileTile();
+      ctx.putImageData(smileTileImageData, 0, 0);
+
+      animation_wasm();
       ctx.putImageData(image_data, center, center);
+
       requestAnimationFrame(animate);
     }
 
@@ -80,9 +101,13 @@
         importObject);
       let tileObj = await WebAssembly.instantiateStreaming(fetch('actors/burning_bush.wasm'),
         tileImportObject);
+      let smileTileObj = await WebAssembly.instantiateStreaming(fetch('actors/smile.wasm'),
+        smileTileImportObject);
 
       animation_wasm = obj.instance.exports.draw;
       animateTile = tileObj.instance.exports.draw;
+      animateSmileTile = smileTileObj.instance.exports.draw;
+
       requestAnimationFrame(animate);
     })();
   </script>
