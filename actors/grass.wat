@@ -5,7 +5,18 @@
 
 (global $yval (mut i32) (i32.const 60))
 
-  (global $static_sprite i64 (i64.const 0x0c_52_27_89_b6_19_42_3c))
+  (;
+    0 0 0 0 0 0 0 0         0x00
+    1 0 0 0 0 0 0 0         0x80
+    0 0 0 0 0 1 0 0         0x04
+    0 0 0 0 1 0 0 1         0x09
+    0 0 1 0 0 1 0 0         0x24
+    0 1 0 0 1 0 0 0         0x48
+    0 0 1 0 0 1 0 0         0x24
+    0 1 0 0 1 0 0 0         0x48
+  ;)
+
+  (global $static_sprite i64 (i64.const 0x00_80_04_08_24_48_24_48))
 
   (func $clear_canvas
     (local $i i32)
@@ -105,7 +116,7 @@
     (func (export "draw")
       call $clear_canvas
       global.get $static_sprite
-      i32.const 0xff_cc_33_ff ;; abgr
+      i32.const 0xff_00_33_00 ;; abgr
       i32.const 0
       i32.const 0
       call $render_sprite

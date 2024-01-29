@@ -61,23 +61,23 @@
       // should setup a tile in every tile space
       for(let i=0; i<=game.board.width * game.board.height; i++) {
         let backgroundTile = {
-          actorModule: await createActorModule('actors/burning_bush.wasm'),
+          actorModule: await getActorModule('actors/grass.wasm'),
           type: 'BACKGROUND',
-          subType: 'BURNINGBUSH'
+          subType: 'GRASS'
         }
         game.board.background.tiles[i] = backgroundTile;
       }
 
       // setup the player tile, putting it in first position
       game.board.actors.tiles[0] = {
-        actorModule: await createActorModule('actors/smile.wasm'),
+        actorModule: await getActorModule('actors/big_d.wasm'),
         type: 'ACTOR',
         subType: 'MAINCHAR'
       };
     }
 
     let actorModuleCache = {};
-    const createActorModule = async (modulePath) => {
+    const getActorModule = async (modulePath) => {
       if(actorModuleCache[modulePath]) {
         return actorModuleCache[modulePath]
       }
@@ -162,7 +162,6 @@
 
 
     // helper functions
-
     function getTileX(tileIndex) {
       return (tileIndex % game.board.width) * game.canvas.tile.width;
     }
