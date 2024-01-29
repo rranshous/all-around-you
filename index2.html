@@ -30,6 +30,7 @@
     let game = {};
 
     // game board is defined in tiles
+    game.board = {}
     game.board = { width: 16, height: 16 };
     game.board.background = {};
     game.board.background.tiles = emptyArray(game.board.width * game.board.height);
@@ -75,8 +76,12 @@
       };
     }
 
+    let actorModuleCache = {};
     const createActorModule = async (modulePath) => {
-      return await WebAssembly.instantiateStreaming(
+      if(actorModuleCache[modulePath]) {
+        return actorModuleCache[modulePath]
+      }
+      let module = await WebAssembly.instantiateStreaming(
         fetch(modulePath),
         { env: {
             buffer: game.canvas.tile.memory,
@@ -85,6 +90,8 @@
           }
         }
       )
+      actorModuleCache[modulePath] = module;
+      return module;
     }
 
     function setupInputs () {
