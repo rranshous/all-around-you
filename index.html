@@ -19,7 +19,7 @@
       }
     </style>
   </head>
-  <body>
+  <body id="everything">
     <center>
     <canvas id="cnvs" width="128" height="128"></canvas>
     </center>
@@ -33,7 +33,30 @@
     const canvasTiles = cnvs_size / tileSize;
     const img_buf_size = sub_cnvs_size * sub_cnvs_size * 4;
     const tileBufSize = tileSize * tileSize * 4;
+    let smilePos = {
+      x: 0, y: 0
+    };
     ctx.clearRect(0, 0, cnvs_size, cnvs_size);
+
+    document.getElementById("everything").addEventListener("keydown", (e) => {
+      console.log('keydown',e);
+        if(e.key == 'w') {
+          console.log('s pressed');
+          smilePos.y = smilePos.y - 1;
+        }
+        if(e.key == 'a') {
+          console.log('s pressed');
+          smilePos.x = smilePos.x - 1;
+        }
+        if(e.key == 's') {
+          console.log('s pressed');
+          smilePos.y = smilePos.y + 1;
+        }
+        if(e.key == 'd') {
+          console.log('s pressed');
+          smilePos.x = smilePos.x + 1;
+        }
+    });
 
     const tileMemory = new WebAssembly.Memory({ initial: 1 });
     const smileTileMemory = new WebAssembly.Memory({ initial: 1 });
@@ -82,13 +105,13 @@
         }
       }
 
-      let smileTileData = new Uint32Array(smileTileMemory.buffer)
-      let backgroundTileData = new Uint32Array(tileMemory.buffer)
+      let backgroundTileData = ctx.getImageData(smilePos.x, smilePos.y, tileSize, tileSize).data;
+      let smileTileData = new Uint8ClampedArray(smileTileMemory.buffer)
       for(let i=0; i<=backgroundTileData.length; i++) {
         smileTileData[i] = backgroundTileData[i];
       }
       animateSmileTile();
-      ctx.putImageData(smileTileImageData, 0, 0);
+      ctx.putImageData(smileTileImageData, smilePos.x, smilePos.y);
 
       animation_wasm();
       ctx.putImageData(image_data, center, center);
