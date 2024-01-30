@@ -37,6 +37,7 @@
     const BOARD_SIZE_TILES = 16; // 16 x 16 tile board
     const BOARD_SIZE_BYTES = BOARD_SIZE_TILES * BOARD_SIZE_TILES * TILE_SIZE_BYTES;
     
+    const ZEROS           = 0b00000000;
     const TILE_TYPE_HERO  = 0b00010001;
     const TILE_TYPE_GRASS = 0b00100010;
 
@@ -49,15 +50,31 @@
             TILE_PIXEL_SIZE, TILE_PIXEL_SIZE
         )
     }
+    function clearActorMemory() {
+        for(let i=0; i<=actorMemoryBuffer.length; i++) {
+            actorMemoryBuffer[i] = ZEROS;
+        }
+    }
+    // function getActorTileData() {
+    //   actorMemoryBuffer.slice(TILE_IMAGE_SIZE_BYTES, TILE_IMAGE_SIZE_BYTES + 4)
+    // }
+    // function addTileToActorMemory(tileBytes) {
+    //     actorMemoryBuffer[TILE_IMAGE_SIZE_BYTES] = tileBytes[0];
+    //     actorMemoryBuffer[TILE_IMAGE_SIZE_BYTES+1] = tileBytes[1];
+    //     actorMemoryBuffer[TILE_IMAGE_SIZE_BYTES+2] = tileBytes[2];
+    //     actorMemoryBuffer[TILE_IMAGE_SIZE_BYTES+3] = tileBytes[3];
+    // }
+
+    // add some GRASS
+    for(let i=0; i<=BOARD_SIZE_BYTES; i+=4) {
+      board[i] = TILE_TYPE_GRASS;
+    }
 
     // add our HERO
     board[0] = TILE_TYPE_HERO; // TYPE:SUBTYPE
     board[1] = 0b00000100;     // SENSOR RADIUS (4)
     board[2] = 0b01100100;     // HEALTH (100)
     board[3] = 0b00000000;     // ACTOR (OPAQUE) STATE
-
-    // add some GRASS
-    board[16] = TILE_TYPE_GRASS;
 
     let moduleLookup = {};
     async function loadActor(path) {
@@ -71,7 +88,7 @@
         )
     }
     async function setupActors() {
-        moduleLookup[TILE_TYPE_HERO] = await loadActor('actors/big_d.wasm');
+        moduleLookup[TILE_TYPE_HERO] = await loadActor('actors/big_black_d.wasm');
         moduleLookup[TILE_TYPE_GRASS] = await loadActor('actors/grass.wasm');
     }
 
@@ -83,8 +100,8 @@
             let type = board[i];
             let tilePos = i === 0 ? 0 : i/4;
             if(type) {
+                clearActorMemory();
                 moduleLookup[board[i]].instance.exports.draw();
-                console.log({ imgdata: getActorImageData() })
                 canvas.ctx.putImageData(
                     getActorImageData(),
                     (tilePos % BOARD_SIZE_TILES) * TILE_PIXEL_SIZE,
