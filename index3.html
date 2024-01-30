@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sprite</title>
+    <style>
+      canvas {
+        width: 512px;
+        height: 512px;
+        margin-left: auto;
+        margin-right: auto;
+        image-rendering: -moz-crisp-edges;
+        image-rendering: -webkit-crisp-edges;
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+      }
+    </style>
+  </head>
+
+  <body id="everything">
+    <center>
+      <canvas id="cnvs" width="128" height="128"></canvas>
+    </center>
+  </body>
+
+  <script>
+
+    // TILE <TYPE:SUBTYPE> <SENSOR_RADIUS> <HP> <ACTORSTATE>
+    // ACTOR MEMORY: <IMAGE> <TILE>
+
+    const TILE_SIZE_BYTES = 4; // 32bit
+    const TILE_PIXEL_SIZE = 8;
+    const TILE_IMAGE_SIZE_BYTES = TILE_PIXEL_SIZE * TILE_PIXEL_SIZE * 4;
+    const BOARD_SIZE_TILES = 16; // 16 x 16 tile board
+    const BOARD_SIZE_BYTES = BOARD_SIZE_TILES * BOARD_SIZE_TILES * TILE_SIZE_BYTES;
+    
+    const TILE_TYPE_HERO  = 0b00010001;
+    const TILE_TYPE_GRASS = 0b00100010;
+
+    let board = new Uint8ClampedArray(new ArrayBuffer(BOARD_SIZE_BYTES));
+    let actorMemory = new WebAssembly.Memory({ initial: 1 })
+    let actorMemoryBuffer = new Uint8ClampedArray(actorMemory.buffer, 0, TILE_SIZE_BYTES + TILE_IMAGE_SIZE_BYTES);
+    function getActorImageData() {
+        return new ImageData(
+            actorMemoryBuffer.slice(0, TILE_IMAGE_SIZE_BYTES),
+            TILE_PIXEL_SIZE, TILE_PIXEL_SIZE
+        )
+    }
+
+    // add our HERO
+    board[0] = TILE_TYPE_HERO; // TYPE:SUBTYPE
+    board[1] = 0b00000100;     // SENSOR RADIUS (4)
+    board[2] = 0b01100100;     // HEALTH (100)
+    board[3] = 0b00000000;     // ACTOR (OPAQUE) STATE
+
+    // add some GRASS
+    board[16] = TILE_TYPE_GRASS;
+
+    let moduleLookup = {};
+    async function loadActor(path) {
+        return WebAssembly.instantiateStreaming(
+            fetch(path),
+            { env: {
+                buffer: actorMemory,
+                cnvs_size: TILE_PIXEL_SIZE,
+                img_buf_size: TILE_IMAGE_SIZE_BYTES,
+            }}
+        )
+    }
+    async function setupActors() {
+        moduleLookup[TILE_TYPE_HERO] = await loadActor('actors/big_d.wasm');
+        moduleLookup[TILE_TYPE_GRASS] = await loadActor('actors/grass.wasm');
+    }
+
+    const canvas = document.getElementById("cnvs");
+    canvas.ctx = canvas.getContext("2d");
+
+    async function nextFrame() {
+        for(let i=0; i<=BOARD_SIZE_BYTES; i+=4) {
+            let type = board[i];
+            let tilePos = i === 0 ? 0 : i/4;
+            if(type) {
+                moduleLookup[board[i]].instance.exports.draw();
+                console.log({ imgdata: getActorImageData() })
+                canvas.ctx.putImageData(
+                    getActorImageData(),
+                    (tilePos % BOARD_SIZE_TILES) * TILE_PIXEL_SIZE,
+                    parseInt(tilePos / BOARD_SIZE_TILES) * TILE_PIXEL_SIZE
+                )
+            }
+        }
+        requestAnimationFrame(nextFrame);
+    }
+
+    (async () => {
+        await setupActors();
+        requestAnimationFrame(nextFrame);
+    })();
+
+  </script>
+</html>
