@@ -29,13 +29,15 @@
   <script>
 
     // TILE <TYPE:SUBTYPE> <SENSOR_RADIUS> <HP> <ACTORSTATE>
-    // ACTOR MEMORY: <IMAGE> <TILE>
+    // ACTOR MEMORY: <IMAGE> <TILE> <MOVECHOICE>
 
     const TILE_SIZE_BYTES = 4; // 32bit
     const TILE_PIXEL_SIZE = 8;
+    const ACTOR_CHOICE_SIZE_BYTES = 4;
     const TILE_IMAGE_SIZE_BYTES = TILE_PIXEL_SIZE * TILE_PIXEL_SIZE * 4;
     const BOARD_SIZE_TILES = 16; // 16 x 16 tile board
     const BOARD_SIZE_BYTES = BOARD_SIZE_TILES * BOARD_SIZE_TILES * TILE_SIZE_BYTES;
+    const ACTOR_MEMORY_BUFFER_BYTES = TILE_SIZE_BYTES + TILE_IMAGE_SIZE_BYTES + ACTOR_CHOICE_SIZE_BYTES
     
     const ZEROS           = 0b00000000;
     const TILE_TYPE_HERO  = 0b00010001;
@@ -43,7 +45,7 @@
 
     let board = new Uint8ClampedArray(new ArrayBuffer(BOARD_SIZE_BYTES));
     let actorMemory = new WebAssembly.Memory({ initial: 1 })
-    let actorMemoryBuffer = new Uint8ClampedArray(actorMemory.buffer, 0, TILE_SIZE_BYTES + TILE_IMAGE_SIZE_BYTES);
+    let actorMemoryBuffer = new Uint8ClampedArray(actorMemory.buffer, 0, ACTOR_MEMORY_BUFFER_BYTES);
     function getActorImageData() {
         return new ImageData(
             actorMemoryBuffer.slice(0, TILE_IMAGE_SIZE_BYTES),
@@ -55,15 +57,20 @@
             actorMemoryBuffer[i] = ZEROS;
         }
     }
-    // function getActorTileData() {
-    //   actorMemoryBuffer.slice(TILE_IMAGE_SIZE_BYTES, TILE_IMAGE_SIZE_BYTES + 4)
-    // }
-    // function addTileToActorMemory(tileBytes) {
-    //     actorMemoryBuffer[TILE_IMAGE_SIZE_BYTES] = tileBytes[0];
-    //     actorMemoryBuffer[TILE_IMAGE_SIZE_BYTES+1] = tileBytes[1];
-    //     actorMemoryBuffer[TILE_IMAGE_SIZE_BYTES+2] = tileBytes[2];
-    //     actorMemoryBuffer[TILE_IMAGE_SIZE_BYTES+3] = tileBytes[3];
-    // }
+    function addTileToActorMemory(tileBytes) {
+        actorMemoryBuffer[TILE_IMAGE_SIZE_BYTES] = tileBytes[0];
+        actorMemoryBuffer[TILE_IMAGE_SIZE_BYTES+1] = tileBytes[1];
+        actorMemoryBuffer[TILE_IMAGE_SIZE_BYTES+2] = tileBytes[2];
+        actorMemoryBuffer[TILE_IMAGE_SIZE_BYTES+3] = tileBytes[3];
+    }
+    function getActionFromActorMemory() {
+      console.debug("getActionFromActorMemory", {
+        actorMemoryBuffer, TILE_IMAGE_SIZE_BYTES, TILE_SIZE_BYTES,
+        sum: TILE_IMAGE_SIZE_BYTES + TILE_SIZE_BYTES,
+        response: actorMemoryBuffer[TILE_IMAGE_SIZE_BYTES + TILE_SIZE_BYTES]
+      })
+      return actorMemoryBuffer[TILE_IMAGE_SIZE_BYTES + TILE_SIZE_BYTES]
+    }
 
     // add some GRASS
     for(let i=0; i<=BOARD_SIZE_BYTES; i+=4) {
@@ -101,12 +108,19 @@
             let tilePos = i === 0 ? 0 : i/4;
             if(type) {
                 clearActorMemory();
+                addTileToActorMemory(board.slice(i, i+4));
                 moduleLookup[board[i]].instance.exports.draw();
                 canvas.ctx.putImageData(
                     getActorImageData(),
                     (tilePos % BOARD_SIZE_TILES) * TILE_PIXEL_SIZE,
                     parseInt(tilePos / BOARD_SIZE_TILES) * TILE_PIXEL_SIZE
                 )
+
+                if((board[i] & TILE_TYPE_HERO) == TILE_TYPE_HERO) {
+                  moduleLookup[board[i]].instance.exports.choosemove();
+                  let actionValue = getActionFromActorMemory();
+                  console.debug("actionValue: " + actionValue);
+                }
             }
         }
         requestAnimationFrame(nextFrame);

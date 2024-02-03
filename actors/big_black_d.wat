@@ -121,6 +121,18 @@
       i32.const 0
       call $render_sprite
     )
+
+    (func (export "choosemove")
+      global.get $cnvs_size
+      global.get $cnvs_size
+      i32.const 4
+      i32.mul
+      i32.mul ;; we are left w/ the memory offset for the image data
+      i32.const 4 ;; TILE_SIZE_BYTES
+      i32.add ;; offset to MOVECHOICE
+      i32.const 0x02 ;; MOVE choice '1' -> move up
+      i32.store ;; hopefully put the value 1
+    )
   )
 
 
