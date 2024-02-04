@@ -35,17 +35,21 @@
     const TILE_PIXEL_SIZE = 8;
     const ACTOR_CHOICE_SIZE_BYTES = 4;
     const TILE_IMAGE_SIZE_BYTES = TILE_PIXEL_SIZE * TILE_PIXEL_SIZE * 4;
-    const BOARD_SIZE_TILES = 16; // 16 x 16 tile board
-    const BOARD_SIZE_BYTES = BOARD_SIZE_TILES * BOARD_SIZE_TILES * TILE_SIZE_BYTES;
+    const BOARD_SIZE_SIDE_TILES = 16; // 16 x 16 tile board
+    const BOARD_SIZE_BYTES = BOARD_SIZE_SIDE_TILES * BOARD_SIZE_SIDE_TILES * TILE_SIZE_BYTES;
     const ACTOR_MEMORY_BUFFER_BYTES = TILE_SIZE_BYTES + TILE_IMAGE_SIZE_BYTES + ACTOR_CHOICE_SIZE_BYTES
     
     const ZEROS           = 0b00000000;
     const TILE_TYPE_HERO  = 0b00010001;
     const TILE_TYPE_GRASS = 0b00100010;
 
-    let board = new Uint8ClampedArray(new ArrayBuffer(BOARD_SIZE_BYTES));
-    let actorMemory = new WebAssembly.Memory({ initial: 1 })
-    let actorMemoryBuffer = new Uint8ClampedArray(actorMemory.buffer, 0, ACTOR_MEMORY_BUFFER_BYTES);
+    const boardBuffer = new ArrayBuffer(BOARD_SIZE_BYTES);
+    const board = new Uint8ClampedArray(boardBuffer);
+    const chunkyBoard = new Int32Array(boardBuffer);
+    document.board = board;
+    document.chunkyBoard = chunkyBoard;
+    const actorMemory = new WebAssembly.Memory({ initial: 1 })
+    const actorMemoryBuffer = new Uint8ClampedArray(actorMemory.buffer, 0, ACTOR_MEMORY_BUFFER_BYTES);
     function getActorImageData() {
         return new ImageData(
             actorMemoryBuffer.slice(0, TILE_IMAGE_SIZE_BYTES),
@@ -101,6 +105,8 @@
 
     const canvas = document.getElementById("cnvs");
     canvas.ctx = canvas.getContext("2d");
+    let heroMove = 0;
+    let heroTilePosition = 0;
 
     async function nextFrame() {
         for(let i=0; i<=BOARD_SIZE_BYTES; i+=4) {
@@ -112,16 +118,30 @@
                 moduleLookup[board[i]].instance.exports.draw();
                 canvas.ctx.putImageData(
                     getActorImageData(),
-                    (tilePos % BOARD_SIZE_TILES) * TILE_PIXEL_SIZE,
-                    parseInt(tilePos / BOARD_SIZE_TILES) * TILE_PIXEL_SIZE
+                    (tilePos % BOARD_SIZE_SIDE_TILES) * TILE_PIXEL_SIZE,
+                    parseInt(tilePos / BOARD_SIZE_SIDE_TILES) * TILE_PIXEL_SIZE
                 )
 
                 if((board[i] & TILE_TYPE_HERO) == TILE_TYPE_HERO) {
+                  console.debug("hero at position " + tilePos);
+                  heroTilePosition = tilePos;
                   moduleLookup[board[i]].instance.exports.choosemove();
                   let actionValue = getActionFromActorMemory();
-                  console.debug("actionValue: " + actionValue);
+                  heroMove = actionValue;
                 }
             }
+        }
+        if(heroMove == 0b00000010) {
+          // move east, swapping tiles
+          let sourcePos = heroTilePosition;
+          let targetPos = heroTilePosition + 1;
+          if( heroTilePosition == (BOARD_SIZE_SIDE_TILES * BOARD_SIZE_SIDE_TILES) - 1) {
+            targetPos = 0;
+          };
+          let tileValue = chunkyBoard[sourcePos];
+          let replacedValue = chunkyBoard[targetPos];
+          chunkyBoard[targetPos] = tileValue;
+          chunkyBoard[sourcePos] = replacedValue;
         }
         requestAnimationFrame(nextFrame);
     }

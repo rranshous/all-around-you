@@ -130,8 +130,8 @@
       i32.mul ;; we are left w/ the memory offset for the image data
       i32.const 4 ;; TILE_SIZE_BYTES
       i32.add ;; offset to MOVECHOICE
-      i32.const 0x02 ;; MOVE choice '1' -> move up
-      i32.store ;; hopefully put the value 1
+      i32.const 0x02 ;; MOVE choice '2' -> move up
+      i32.store ;; hopefully put the value 2
     )
   )
 
