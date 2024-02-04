@@ -36,7 +36,8 @@
     const ACTOR_CHOICE_SIZE_BYTES = 4;
     const TILE_IMAGE_SIZE_BYTES = TILE_PIXEL_SIZE * TILE_PIXEL_SIZE * 4;
     const BOARD_SIZE_SIDE_TILES = 16; // 16 x 16 tile board
-    const BOARD_SIZE_BYTES = BOARD_SIZE_SIDE_TILES * BOARD_SIZE_SIDE_TILES * TILE_SIZE_BYTES;
+    const BOARD_TILES_SUM = BOARD_SIZE_SIDE_TILES * BOARD_SIZE_SIDE_TILES;
+    const BOARD_SIZE_BYTES = BOARD_TILES_SUM * TILE_SIZE_BYTES;
     const ACTOR_MEMORY_BUFFER_BYTES = TILE_SIZE_BYTES + TILE_IMAGE_SIZE_BYTES + ACTOR_CHOICE_SIZE_BYTES
     
     const ZEROS           = 0b00000000;
@@ -131,18 +132,22 @@
                 }
             }
         }
-        if(heroMove == 0b00000010) {
-          // move east, swapping tiles
-          let sourcePos = heroTilePosition;
-          let targetPos = heroTilePosition + 1;
-          if( heroTilePosition == (BOARD_SIZE_SIDE_TILES * BOARD_SIZE_SIDE_TILES) - 1) {
-            targetPos = 0;
-          };
-          let tileValue = chunkyBoard[sourcePos];
-          let replacedValue = chunkyBoard[targetPos];
-          chunkyBoard[targetPos] = tileValue;
-          chunkyBoard[sourcePos] = replacedValue;
+        // north, east, south, west
+        let heroMoves = [0, -BOARD_SIZE_SIDE_TILES, 1, BOARD_SIZE_SIDE_TILES, -1];
+        let sourcePos = heroTilePosition;
+        let targetPos = heroTilePosition + heroMoves[heroMove];
+        if(targetPos >= BOARD_TILES_SUM) {
+          targetPos = targetPos - BOARD_TILES_SUM;
         }
+        if(targetPos < 0) {
+          targetPos = BOARD_TILES_SUM + targetPos;
+        }
+        let tileValue = chunkyBoard[sourcePos];
+        let replacedValue = chunkyBoard[targetPos];
+        chunkyBoard[targetPos] = tileValue;
+        chunkyBoard[sourcePos] = replacedValue;
+        heroMove = 0b00;
+        
         requestAnimationFrame(nextFrame);
     }
 
