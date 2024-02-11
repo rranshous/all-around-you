@@ -123,15 +123,31 @@
     )
 
     (func (export "choosemove")
+      (local $move i32)
       global.get $cnvs_size
       global.get $cnvs_size
       i32.const 4
       i32.mul
       i32.mul ;; we are left w/ the memory offset for the image data
-      i32.const 4 ;; TILE_SIZE_BYTES
+      i32.const 4 ;; TILE_SIZE_BYTES, tile data size in bytes
       i32.add ;; offset to MOVECHOICE
-      i32.const 0x01 ;; MOVE choice '2' -> move up
-      i32.store ;; hopefully put the value 2
+              ;; now the top of the stack is the offset in
+              ;; memory we wish to write our move choice to
+      (local.set $move (i32.const 0x02))
+      local.get $move
+      i32.store ;; store the move value to shared memory
+                ;; PS: only the first byte is significant to describe move
+      ;; now we want to store the choice in our long term actor state
+      ;; find the offset to our actor state
+      global.get $cnvs_size
+      global.get $cnvs_size
+      i32.const 4
+      i32.mul
+      i32.mul ;; we are left w/ the memory offset for the image data
+      i32.const 3
+      i32.add ;; start of actor data, in memory, in bytes
+      local.get $move
+      i32.store ;; store the move in the actor state
     )
   )
 

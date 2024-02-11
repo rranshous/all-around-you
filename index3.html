@@ -32,14 +32,16 @@
     // ACTOR MEMORY: <IMAGE> <TILE> <MOVECHOICE>
 
     const TILE_SIZE_BYTES = 4; // 32bit
-    const TILE_PIXEL_SIZE = 8;
-    const ACTOR_CHOICE_SIZE_BYTES = 4;
+    const TILE_PIXEL_SIZE = 8; // 8 pixels wide
+    const ACTOR_CHOICE_SIZE_BYTES = 4; // the actors move choice occupies 4 Bytes
     const TILE_IMAGE_SIZE_BYTES = TILE_PIXEL_SIZE * TILE_PIXEL_SIZE * 4;
     const BOARD_SIZE_SIDE_TILES = 16; // 16 x 16 tile board
     const BOARD_TILES_SUM = BOARD_SIZE_SIDE_TILES * BOARD_SIZE_SIDE_TILES;
     const BOARD_SIZE_BYTES = BOARD_TILES_SUM * TILE_SIZE_BYTES;
     const ACTOR_MEMORY_BUFFER_BYTES = TILE_SIZE_BYTES + TILE_IMAGE_SIZE_BYTES + ACTOR_CHOICE_SIZE_BYTES
-    
+    const ACTOR_MEMORY_STATE_OFFSET_BYTES = TILE_IMAGE_SIZE_BYTES + 3;
+    const ACTOR_MEMORY_ACTION_OFFSET_BYTES = TILE_IMAGE_SIZE_BYTES + TILE_SIZE_BYTES;
+
     const ZEROS           = 0b00000000;
     const TILE_TYPE_HERO  = 0b00010001;
     const TILE_TYPE_GRASS = 0b00100010;
@@ -70,11 +72,17 @@
     }
     function getActionFromActorMemory() {
       console.debug("getActionFromActorMemory", {
-        actorMemoryBuffer, TILE_IMAGE_SIZE_BYTES, TILE_SIZE_BYTES,
-        sum: TILE_IMAGE_SIZE_BYTES + TILE_SIZE_BYTES,
-        response: actorMemoryBuffer[TILE_IMAGE_SIZE_BYTES + TILE_SIZE_BYTES]
+        actorMemoryBuffer, TILE_IMAGE_SIZE_BYTES, TILE_SIZE_BYTES, ACTOR_MEMORY_ACTION_OFFSET_BYTES,
+        response: actorMemoryBuffer.slice(ACTOR_MEMORY_ACTION_OFFSET_BYTES, ACTOR_MEMORY_ACTION_OFFSET_BYTES + 4)
       })
-      return actorMemoryBuffer[TILE_IMAGE_SIZE_BYTES + TILE_SIZE_BYTES]
+      return actorMemoryBuffer.slice(ACTOR_MEMORY_ACTION_OFFSET_BYTES, ACTOR_MEMORY_ACTION_OFFSET_BYTES + 4);
+    }
+    function getActorStateFromActorMemory() {
+      console.log("getActorStateFromActorMemory", {
+        actorMemoryBuffer, ACTOR_MEMORY_STATE_OFFSET_BYTES,
+        response: actorMemoryBuffer.slice(ACTOR_MEMORY_STATE_OFFSET_BYTES, ACTOR_MEMORY_STATE_OFFSET_BYTES+1)
+      })
+      return actorMemoryBuffer.slice(ACTOR_MEMORY_STATE_OFFSET_BYTES, ACTOR_MEMORY_STATE_OFFSET_BYTES+1);
     }
 
     // add some GRASS
@@ -128,11 +136,20 @@
                   heroTilePosition = tilePos;
                   moduleLookup[board[i]].instance.exports.choosemove();
                   let actionValue = getActionFromActorMemory();
-                  heroMove = actionValue;
+                  // taking just the first byte of the 4 byte action value
+                  // first byte describes direction
+                  heroMove = actionValue[0];
+                  getActorStateFromActorMemory();
                 }
             }
         }
-        // north, east, south, west
+
+        // enact player moves
+        // 0 0 0 0 0 0 0 0 = zero = no where
+        // 0 0 0 0 0 0 0 1 = one = north
+        // 0 0 0 0 0 0 1 0 = two = east
+        // 0 0 0 0 0 0 1 1 = three = south
+        // 0 0 0 0 0 1 0 0 = four = west
         let heroMoves = [0, -BOARD_SIZE_SIDE_TILES, 1, BOARD_SIZE_SIDE_TILES, -1];
         let sourcePos = heroTilePosition;
         let targetPos = heroTilePosition + heroMoves[heroMove];
